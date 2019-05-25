@@ -1,8 +1,8 @@
 #Comment
 #Comment2
 
-C => B
-A + B + C => D
+C + B - A + D => B
+A + (((B + C) + A + C) + D) => D
 A | B => C
 
 
