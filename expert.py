@@ -2,30 +2,13 @@
 import sys
 import re
 
-def end(reason): #coucou toi
-    print(reason)
-    exit()
-
-current_file = None
 RULE_ID = 0
 FACT_ID = 0
 OPERATION_ID = 0
-RULE_LIST = [
-    "+",
-    "|",
-    "=>",
-    "<=>",
-    "^",
-]
 
-def getRuleId():
-    return RULE_ID
-
-def getOperationId():
-    return RULE_ID
-
-def getFactId():
-    return FACT_ID
+def end(reason): #coucou toi
+    print(reason)
+    exit()
 
 def addOperationId():
     global OPERATION_ID
@@ -38,8 +21,15 @@ def addRuleId():
 def addFactId():
     global FACT_ID
     FACT_ID = FACT_ID + 1
+current_file = None
 
-
+RULE_LIST = [
+    "+",
+    "|",
+    "=>",
+    "<=>",
+    "^",
+]
 
 class File:
     def __init__(self, path):
@@ -47,26 +37,29 @@ class File:
         self.facts = []
         self.rules = []
 
-    def addOperation(self, operation, operation_lvl,lhs, rhs):
+    def createOperation(self, operation, operation_lvl):
         if self.checkRule(operation):
             if len(self.rules) == RULE_ID:
                 self.rules.append([])
-            op = Operation(operation, OPERATION_ID, operation_lvl, lhs, rhs)
+            op = Operation(operation, OPERATION_ID, operation_lvl)
             self.rules[RULE_ID].append(op)
-            print(str(RULE_ID) + " Operation added" + str(lhs) + str(rhs))
+            print(str(RULE_ID) + " Operation added")
             addOperationId()
             return op
-        return None
+        print(operation)
+        end("Error")
         # else:
         #     print("Operation not added")
 
-    def addFact(self, name, is_not):
-        if not self.checkFactAlreadyExist(name) or name == "":
-            fact = Fact(name, FACT_ID, is_not)
-            self.facts.append(fact)
+    
+    def createFact(self, name, is_not):
+        fact = self.checkFactAlreadyExist(name)
+        if not fact or name == "":
+            t_fact = Fact(name, FACT_ID, is_not)
+            self.facts.append(t_fact)
             addFactId()
-            return fact
-        return None
+            return t_fact
+        return fact
         # else: 
         #     print("Fact not added")
 
@@ -90,13 +83,7 @@ class File:
         for  id in self.rules:
             print("Rule numero :" + str(i))
             for op in id:
-                left = ""
-                if op.prev_operand: 
-                    left = op.lhs.op
-                else :
-                    left = str(op.lhs)
-                print(str(i) + "Operation : " + str(op.op) + ", left : " +  left + ", right : " + str(op.rhs) + ", level : " + str(op.op_lvl))
-                break
+                print(str(i) + "Operation : " + str(op.op) + ", left : " +  str(op.lhs) + ", right : " + str(op.rhs) + ", level : " + str(op.op_lvl))
             i += 1
     
 
@@ -109,13 +96,13 @@ class Fact:
 
 
 class Operation:
-    def __init__(self, op, id, op_lvl, lhs, rhs):
+    def __init__(self, op, id, op_lvl):
         self.op = op
         self.id = id
         self.op_lvl = op_lvl
-        self.lhs = lhs
-        self.rhs = rhs
-        self.result = -1
+        self.lhs = None
+        self.rhs = None
+        self.result = None
 
 
 def set_values(line):
@@ -150,27 +137,23 @@ def set_rule(line):
     next = 0
     operation_lvl = 0
     fact = None
-    previous_operand = None
-    operand = ""
+    p_op = None
+    operand = None
     for idx, c in enumerate(line):
         if next:
             next -= 1
         else:
-            if c.isalpha():
-                if not f_f:
-                    f_f = current_file.addFact(c, 0)
-                else :
-                    s_f = current_file.addFact(c, 0)
-            elif c == "(":
-                operation_lvl += 1
+            if c == "(":
+                    operation_lvl += 1
             elif c == ")":
                 operation_lvl -= 1
+            elif c.isalpha():
+                print(c)
+                fact = current_file.createFact(c, 0)
+                
             elif c == "!": 
                 if line[idx + 1].isalpha():
-                    if not f_f:
-                        f_f = current_file.addFact(c, 1)
-                    else:
-                        s_f = current_file.addFact(c, 1)
+                    fact = current_file.createFact(c, 1)
                 else :
                     end("Error")
             else :
@@ -182,15 +165,23 @@ def set_rule(line):
                     next = 1
                 else:
                     operand = c
-        if f_f and s_f:
-            print("previous" + str(previous_operand))
-            if previous_operand:
-                print(str(previous_operand.op))
-            previous_operand = current_file.addOperation(operand, operation_lvl, f_f, s_f)
-            f_f = current_file.addFact("", 0)
-            f_f.value = previous_operand.result
-            s_f = None
-
+        if operand:
+            op = current_file.createOperation(operand, operation_lvl)
+            if p_op and not fact:
+                op.lhs = p_op
+            elif operation_lvl > 0 and fact:
+                p_op.rhs = op
+                op.lhs = fact
+                fact = None
+            else :
+                op.lhs = fact
+                fact = None
+            p_op = op
+            operand = None
+        elif p_op and fact:
+            p_op.rhs = fact
+            fact = None
+        
 def parse_line(line):
     line = list(re.sub(r'\s+', '', line))
     if line[0] == "=":
