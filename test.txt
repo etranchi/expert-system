@@ -1,0 +1,11 @@
+#Comment
+#Comment2
+
+C => B
+A + B + C => D
+A | B => C
+
+
+=A
+
+?BC
