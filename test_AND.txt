@@ -1,0 +1,13 @@
+B => A # 0 res 1
+D + E => B  # 1 res 1, 2 res 1
+G + H => F # 3 res 1, 4 res 1, 0
+G + H => G # 5 res 1, 6 res 1
+G => H # 7 res 1,
+L | M => K # 8 res 0, 9
+O + P <=> L + M # 10 res 1, 11 res 1, 12
+N => M # 13
+
+=BG
+
+?AFKP
+

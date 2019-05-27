@@ -5,6 +5,9 @@ import re
 RULE_ID = 0
 FACT_ID = 0
 OPERATION_ID = 0
+R_S = "RIGHT"
+M_S = "MIDDLE"
+L_S = "LEFT"
 
 def end(reason): #coucou toi
     print(reason)
@@ -23,11 +26,10 @@ def addFactId():
     FACT_ID = FACT_ID + 1
 current_file = None
 
-RULE_LIST = [
+
+OP_LIST = [
     "+",
     "|",
-    "=>",
-    "<=>",
     "^",
 ]
 
@@ -36,179 +38,86 @@ class File:
         self.path = path
         self.facts = []
         self.rules = []
-
+        self.operations = []
+        self.maxLvl = 0
+        self.minLvl = -1
 
     def displayFacts(self):
         for f in self.facts:
             if len(f.name) > 0:
                 print(f.name + " : " + str(f.value))
 
-    def createOperation(self, operation, operation_lvl):
-        if self.checkRule(operation):
-            op = Operation(operation, OPERATION_ID, operation_lvl)
-            self.rules.append(op)
-            print(str(RULE_ID) + " Operation added")
-            addOperationId()
-            return op
-        print(operation)
-        end("Error")
-        # else:
-        #     print("Operation not added")
-
+    def find_operation_same_same(self, hash):
+        return next((x for x in self.operations if x.hash == hash), None)
     
-    def createFact(self, name, is_not):
-        fact = self.checkFactAlreadyExist(name)
-        if not fact or name == "":
-            t_fact = Fact(name, FACT_ID, is_not)
-            self.facts.append(t_fact)
-            addFactId()
-            return t_fact
-        return fact
-        # else: 
-        #     print("Fact not added")
+    def find_fact_same_same(self, name, is_not):
+        return next((x for x in self.facts if x.name == name and (is_not == None or x.is_not == is_not)), None)
 
-    def checkRule(self, operation):
-        return next((x for x in RULE_LIST if x == operation), None)
-
-    def checkFactAlreadyExist(self, name):
-        return next((x for x in self.facts if x.name == name), None)
-
-    def setFactNameTo(self, name,value):
-        print(self.checkFactAlreadyExist(name))
-
-    def orderOperationInRules(self):
-        self.rules = sorted(self.rules, key=lambda operation: operation.op_lvl, reverse=True)
-
-    def display(self):
-        for op in self.rules:
-            if type(op) is Operation:
-                lhs = factValue(op.lhs)
-                rhs = factValue(op.rhs)
-                print(str(op.id) + "Operation : " + str(op.op) + ", left : " +  lhs + ", right : " + rhs + ", level : " + str(op.op_lvl) + ", solvable : "+str(op.solvable) + ", result :" + str(op.result))
-            else :
-                lhs = str(op.value)
-                rhs = "idk"
-                print(str(op.id) + " Fact value : " + lhs)
-
-    def checkChangeOp(self, op):
-        if op and type(op.lhs) is Fact and type(op.rhs) is Fact:
-            result = op.makeOperation()
-            fact = Fact("",FACT_ID, 0)
-            fact.value = result
-            self.replaceAllOp(op, fact)
-            addFactId()
-
-    def replaceAllOp(self, op, fact):
-        j = -1
-        for ope in self.rules:
-            j += 1
-            if type(ope) is Operation:
-                if type(ope.lhs) is Operation and ope.lhs.id == op.id:
-                    self.rules[j].lhs = fact
-                elif type(ope.rhs) is Operation and ope.rhs.id == op.id:
-                    self.rules[j].rhs = fact
-
-    def checkIfSolved(self):
-        for ope in self.rules:
-            if type(ope) is Operation and ope.solvable == 0:
-                return 0
-        return 1
-
-    def makeItSolvable(self):
-        self.display()
-        solvableArray = []
-
+    def replace_op_by_fact(self, op):
         i = -1
-        for op in self.rules:
+        fact = Fact(op.hash, 0)
+        fact.value = op.result
+        for _ in self.operations:
             i += 1
-            if op.solvable == 0:
-                if type(op.lhs) is Fact and type(op.rhs) is Fact and op.lhs.value == 1 and op.rhs.value == 1:
-                    self.rules[i].solvable = 1
-                    solvableArray.append(op)
-                if type(op.lhs) is Fact and type(op.rhs) is Fact and op.op == "|" and (op.rhs.value == 1 or op.lhs.value == 1):
-                    self.rules[i].solvable = 1
-                    solvableArray.append(op)
-                if type(op.lhs) is Fact and type(op.rhs) is Fact and op.op_lvl < 0 and op.lhs.value != None:
-                    self.rules[i].solvable = 1
-                    solvableArray.append(op)
-        print(len(self.rules))
-        print(len(solvableArray))
+            if type(_) is Operation and fact.name == _.hash: 
+                self.operations[i] = fact
+                
+        
 
-        for op in solvableArray:
-                op.solvable = 1
-                result = op.makeOperation()
-                print("making operation id : " + str(op.id))
-                print(str(result) + " result of " + str(op.lhs.value) + " " + op.op + " " +str(op.rhs.value))
-                if op.op_lvl < 0:
-                    fact = current_file.checkFactAlreadyExist(op.rhs.name)
-                    fact.value = result
-                else:
-                    fact = Fact("",FACT_ID, 0)
-                    fact.value = result
-                    self.replaceAllOp(op, fact)
-                addFactId()
-                # self.display()
-                if not self.checkIfSolved():
-                    self.makeItSolvable()
-
-def factValue(factornot):
-    if type(factornot) is Fact:
-        return str(factornot.value)
-    else :
-        return 'operationid : ' + str(factornot.id)
 class Fact:
-    def __init__(self, name, id, is_not):
+    def __init__(self, name, is_not):
         self.name = name
         self.value = 0
-        self.id = id
         self.is_not = is_not
+        
+    def get_v(self):
+        if self.is_not:
+            return not self.value
+        return self.value
 
 
 class Operation:
-    def __init__(self, op, id, op_lvl):
+    def __init__(self, op, op_side, strings, hash):
         self.op = op
         self.id = id
-        self.op_lvl = op_lvl
-        self.lhs = None
+        self.op_type = op_side
+        self.hash = hash
+        self.lhs_s = strings[0]
+        self.rhs_s = strings[1]
         self.rhs = None
+        self.lhs = None
         self.result = None
-        self.solvable = 0
+        self.solved = 0
     
-    def ADD(self):
-        if self.lhs.value is None and self.rhs.value:
-            return self.rhs.value
-        if self.rhs.value is None and self.lhs.value:
-            return self.lhs.value
-        if self.rhs.value is None and self.lhs.value is None:
-            return None
-        return self.lhs.value & self.rhs.value
+    def get_op_value(self, str):
+        for op in OP_LIST:
+            if str.find(op) > 0:
+                return str[str.find(op)]
+        end("Error on parsing.")
 
-    def OR(self):
-        if self.lhs.value is None and self.rhs.value:
-            return self.rhs.value
-        if self.rhs.value is None and self.lhs.value:
-            return self.lhs.value
-        if self.rhs.value is None and self.lhs.value is None:
-            return None
-        return self.lhs.value | self.rhs.value
+    def create_operations(self, str, side):
+        if len(str) > 2:
+            operation = current_file.find_operation_same_same(str)
+            if not operation :
+                operand = self.get_op_value(str)
+                sides = str.split(operand)            
+                operation = Operation(operand, side, sides, str)
+                current_file.operations.append(operation)
+                operation.parse_each_side()
+            return operation
+        else:
+            is_not = not (len(str) == 1)
+            fact = current_file.find_fact_same_same(str, is_not)
+            if not fact:
+                fact = Fact(str , is_not)
+                current_file.facts.append(fact)
+            return fact
+
+    def parse_each_side(self):
+        self.lhs = self.create_operations(self.lhs_s, L_S)
+        self.rhs = self.create_operations(self.rhs_s, R_S)
     
-    def XOR(self):
-        if self.lhs.value is None and self.rhs.value:
-            return self.rhs.value
-        if self.rhs.value is None and self.lhs.value:
-            return self.lhs.value
-        if self.rhs.value is None and self.lhs.value is None:
-            return None
-        return self.lhs.value ^ self.rhs.value
-
-    def IMP(self):
-        return self.lhs.value
-
-    def IAOI(self):
-        return self.rhs.value and self.lhs.value
-
-    def makeOperation(self):
-        name = ""
+    def make_my_operation(self):
         if self.op == "+":
             name = "ADD"
         elif self.op == "|":
@@ -220,99 +129,90 @@ class Operation:
         elif self.op == "<=>":
             name = "IAOI"
         method = getattr(self, name, lambda: "Error")
-        return method()
+        self.result = method()
+        self.solved = 1
+        current_file.replace_op_by_fact(self)
+
+    def ADD(self):
+        if self.lhs.get_v() is None and self.rhs.get_v():
+            return self.rhs.get_v()
+        if self.rhs.get_v() is None and self.lhs.get_v():
+            return self.lhs.get_v()
+        if self.rhs.get_v() is None and self.lhs.get_v() is None:
+            return None
+        return self.lhs.get_v() & self.rhs.get_v()
+
+    def OR(self):
+        if self.lhs.get_v() is None and self.rhs.get_v():
+            return self.rhs.get_v()
+        if self.rhs.get_v() is None and self.lhs.get_v():
+            return self.lhs.get_v()
+        if self.rhs.get_v() is None and self.lhs.get_v() is None:
+            return None
+        return self.lhs.get_v() | self.rhs.get_v()
+    
+    def XOR(self):
+        if self.lhs.get_v() is None and self.rhs.get_v():
+            return self.rhs.get_v()
+        if self.rhs.get_v() is None and self.lhs.get_v():
+            return self.lhs.get_v()
+        if self.rhs.get_v() is None and self.lhs.get_v() is None:
+            return None
+        return self.lhs.get_v() ^ self.rhs.get_v()
+
+    def IMP(self):
+        return self.lhs.get_v()
+
+    def IAOI(self):
+        return self.rhs.get_v() and self.lhs.get_v()
 
 
-def set_values(line):
-    for c in line:
-        if c != "=" and c.isalpha():
-            fact = current_file.checkFactAlreadyExist(c)
-            if not fact:
-                # Create fact
-                print("no fact")
-            else : 
-                fact.value = 1
-                # print(str(fact.name) + "Set to 1")
-    print("values to be set" + str(line))
 
-def set_questions(line):
-    print("questions to be set" + str(line))
+def solve_operation(operation):
+    if operation is Operation and operation.solved == 1:
+        return
+    if type(operation) is Operation and type(operation.lhs) is Operation:
+            solve_operation(operation.lhs)
+    elif type(operation) is Operation and type(operation.lhs) is Fact and type(operation.rhs) is Fact:
+        operation.make_my_operation()
 
 
-def setFact(fact, f, s):
-    if not f:
-        f = fact
-    else :
-        s = fact
-    return fact
-
-class dF:
-    def __init(self, f_f, s_f):
-        self.f_f = f_f
-        self.s_f = s_f
+def makeMagic():
+    for op in current_file.rules:
+        solve_operation(op)
+        if op.solved:
+            print(op.hash + " solved " + str(op.result))
 
 def set_rule(line):
-    next = 0
-    operation_lvl = 0
-    fact = None
-    p_op = None
     operand = None
-    for idx, c in enumerate(line):
-        if next:
-            next -= 1
-        else:
-            if c == "(":
-                    operation_lvl += 1
-            elif c == ")":
-                operation_lvl -= 1
-            elif c.isalpha():
-                print(c)
-                fact = current_file.createFact(c, 0)
-                
-            elif c == "!": 
-                if line[idx + 1].isalpha():
-                    fact = current_file.createFact(c, 1)
-                else :
-                    end("Error")
-            else :
-                if c == '<' or c == '=':
-                    if c == '<':
-                        next += 1
-                        operand = c + line[idx + 1] + line[idx + 2]
-                    elif c == '=':
-                        operand = c + line[idx + 1]
-                    next += 1
-                    operation_lvl -= 1
-                else:
-                    operand = c
-        if operand:
-            op = current_file.createOperation(operand, operation_lvl)
-            if p_op and not fact:
-                op.lhs = p_op
-            elif operation_lvl > 0 and fact and p_op:
-                p_op.rhs = op
-                op.lhs = fact
-                fact = None
-            else :
-                op.lhs = fact
-                fact = None
-            p_op = op
-            operand = None
-        elif p_op and fact:
-            p_op.rhs = fact
-            fact = None
-        current_file.checkChangeOp(p_op)
+    strings = line.split("<=>")
+    if len(strings) == 1: 
+        operand = "=>"
+        strings = line.split("=>")
+    else :
+        operand = "<=>"
+        strings = line.split("<=>")
+    middle_op = Operation(operand, M_S, strings, line)
+    middle_op.parse_each_side()
+    print(format(middle_op.hash, "30") + "Added")
+    current_file.rules.append(middle_op)
         
-        
+def set_init_values(line):
+    for i in range(1, len(line)):
+        fact = current_file.find_fact_same_same(line[i], None)
+        if fact:
+            fact.value = 1
+            print("Fact " + fact.name + " set to 1")
+
 def parse_line(line):
-    line = list(re.sub(r'\s+', '', line))
+    line = re.sub(r'\s+', '', line)
     if line[0] == "=":
-        set_values(line)
+        set_init_values(line)
     elif line[0] == "?":
-        set_questions(line)
+        # set_questions(line)
+        print("questions..")
     else:
         set_rule(line)
-        addRuleId()
 
 def check_line(line):
     if line.find("#") >= 0:
@@ -326,10 +226,13 @@ def check_file(s_file):
         file = open(s_file)
         for line in file:
             check_line(line)
-        current_file.orderOperationInRules()
-        current_file.makeItSolvable()
-        current_file.display()
-        current_file.displayFacts()
+        print("I got everything needed.")
+        makeMagic()
+        #current_file.orderOperationInRules()
+        
+        # current_file.makeItSolvable(current_file.maxLvl)
+        # current_file.display()
+        # current_file.displayFacts()
         file.close()
     except Exception as err:
         end("Give me a real file please." + err)
