@@ -51,16 +51,18 @@ class File:
         return next((x for x in self.operations if x.hash == hash), None)
     
     def find_fact_same_same(self, name, is_not):
-        return next((x for x in self.facts if x.name == name and (is_not == None or x.is_not == is_not)), None)
+        return next((x for x in self.facts if x.name == name), None)
 
     def replace_op_by_fact(self, op):
         i = -1
         fact = Fact(op.hash, 0)
         fact.value = op.result
+        fact.solved = 1
         for _ in self.operations:
             i += 1
             if type(_) is Operation and fact.name == _.hash: 
                 self.operations[i] = fact
+                print("fact added" + fact.name)
                 
         
 
@@ -69,6 +71,7 @@ class Fact:
         self.name = name
         self.value = 0
         self.is_not = is_not
+        self.solved = None
         
     def get_v(self):
         if self.is_not:
@@ -88,6 +91,7 @@ class Operation:
         self.lhs = None
         self.result = None
         self.solved = 0
+
     
     def get_op_value(self, str):
         for op in OP_LIST:
@@ -131,6 +135,7 @@ class Operation:
         method = getattr(self, name, lambda: "Error")
         self.result = method()
         self.solved = 1
+        
         current_file.replace_op_by_fact(self)
 
     def ADD(self):
@@ -140,7 +145,7 @@ class Operation:
             return self.lhs.get_v()
         if self.rhs.get_v() is None and self.lhs.get_v() is None:
             return None
-        return self.lhs.get_v() & self.rhs.get_v()
+        return self.lhs.get_v() and self.rhs.get_v()
 
     def OR(self):
         if self.lhs.get_v() is None and self.rhs.get_v():
@@ -161,27 +166,55 @@ class Operation:
         return self.lhs.get_v() ^ self.rhs.get_v()
 
     def IMP(self):
-        return self.lhs.get_v()
+        fact = current_file.find_fact_same_same(self.rhs.name, self.rhs.is_not)
+        if fact:
+            if type(self.lhs) is Fact: 
+                fact.value = self.lhs.value
+            else :
+                fact.value = self.lhs.result
+            print(fact.name + " set to : " + str(fact.value))
+            fact.solved = 1
+        self.solved = 1
+        return fact.value
 
     def IAOI(self):
         return self.rhs.get_v() and self.lhs.get_v()
 
 
 
-def solve_operation(operation):
-    if operation is Operation and operation.solved == 1:
-        return
-    if type(operation) is Operation and type(operation.lhs) is Operation:
-            solve_operation(operation.lhs)
-    elif type(operation) is Operation and type(operation.lhs) is Fact and type(operation.rhs) is Fact:
-        operation.make_my_operation()
 
+def make_easy_op():
+    easy_op = []
+    for op in current_file.operations:
+        if type(op) is Operation:
+            if (type(op.lhs) is Fact or type(op.rhs) is Fact) and (op.lhs.solved == 1 or op.rhs.solved == 1):
+                if op.op == "+" or op.op == "|":
+                    op.make_my_operation()
+                    print("Operation done : " + op.hash + "=" + str(op.result))
+            if type(op.lhs) is Operation:
+                print("je suis la")
+def make_easy_rule():
+    i = -1
+    for op in current_file.rules:
+        if op.solved == 0:
+            print(op.hash)
+            print(op.lhs.solved)
+            if op.lhs.solved == 1:
+                op.make_my_operation()
+                print("Operation done : " + op.hash + "=" + str(op.result))
+
+
+def check_if_solved():
+    for op in current_file.rules:
+        if op.solved == 0:
+            return False
+    return True
 
 def makeMagic():
-    for op in current_file.rules:
-        solve_operation(op)
-        if op.solved:
-            print(op.hash + " solved " + str(op.result))
+    make_easy_op()
+    make_easy_rule()
+    if not check_if_solved():
+        makeMagic()
 
 def set_rule(line):
     operand = None
@@ -202,6 +235,7 @@ def set_init_values(line):
         fact = current_file.find_fact_same_same(line[i], None)
         if fact:
             fact.value = 1
+            fact.solved = 1
             print("Fact " + fact.name + " set to 1")
 
 def parse_line(line):
@@ -232,7 +266,7 @@ def check_file(s_file):
         
         # current_file.makeItSolvable(current_file.maxLvl)
         # current_file.display()
-        # current_file.displayFacts()
+        current_file.displayFacts()
         file.close()
     except Exception as err:
         end("Give me a real file please." + err)
