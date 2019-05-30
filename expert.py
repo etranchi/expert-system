@@ -85,7 +85,7 @@ class File:
             fact = self.find_fact_same_same(rhs.name, None)
             if fact:
                 if type(lhs) is Fact:
-                    fact.value = lhs.value
+                    fact.value = lhs.get_v()
                     print(fact.name + "set to " + str(lhs.value))
                 else :
                     fact.value = lhs.result
@@ -143,7 +143,8 @@ class Operation:
             return operation
         else:
             is_not = 0
-            if len(str) > 1:
+            print("STR",str, len(str))
+            if len(str) == 2:
                 is_not = 1
                 str = str[1]
             fact = current_file.find_fact_same_same(str, is_not)
@@ -221,7 +222,7 @@ class Operation:
     def IMP(self):
         self.solved = 1
         if type(self.rhs) is Fact:
-            fact = current_file.find_fact_same_same(self.rhs.name, self.rhs.is_not)
+            fact = current_file.find_fact_same_same(self.rhs.name, None)
             if fact:
                 if type(self.lhs) is Fact: 
                     fact.value = self.lhs.get_v()
@@ -233,10 +234,9 @@ class Operation:
                 fact.solved = 1
                 return fact.get_v()
         else :
-            print("JE PASSE")
             current_file.set_value_to_op_and_fact(self.lhs, self.rhs)
             if type(self.lhs) is Fact:
-                return self.lhs.value
+                return self.lhs.get_v()
             else :
                 return self.lhs.result
         
