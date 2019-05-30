@@ -1,10 +1,5 @@
-#Comment
-#Comment2
-
-B + C => A 
-D | E => B
-B => C
-
-=DE
+B => A
+!C => A
+=B
 
 ?A

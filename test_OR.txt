@@ -1,0 +1,10 @@
+#Comment
+#Comment2
+
+B + C => A 
+D | E => B
+B => C
+
+=DE
+
+?A

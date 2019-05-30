@@ -1,7 +1,13 @@
-A => B  # 1 res 1, 2 res 1
-B => C # 0 res 1
+B => A
+D + E => B
+G + H => F
+I + J => G
+G => H
+L + M => K
+O + P => L + N
+N => M
 
-=BE
+=DEIJP
 
 ?AFKP
 
