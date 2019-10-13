@@ -78,6 +78,7 @@ class File:
             if type(_) is Operation and fact.name == _.hash: 
                 self.operations[i] = fact
                 print("fact added" + fact.name)
+                print(type(self.operations[i]))
     
     def set_value_to_op_and_fact(self,lhs, rhs):
         rhs.solved = 1
@@ -134,16 +135,19 @@ class Operation:
     def create_operations(self, str, side):
         if len(str) > 2:
             operation = current_file.find_operation_same_same(str)
+            str = str.replace("(", "")
+            str = str.replace(")", "")
+            print("STR",str, len(str))
             if not operation :
                 operand = self.get_op_value(str)
-                sides = str.split(operand)            
+                sides = str.split(operand)
+                print("SIDES", sides)
                 operation = Operation(operand, side, sides, str)
                 current_file.operations.append(operation)
                 operation.parse_each_side()
             return operation
         else:
             is_not = 0
-            print("STR",str, len(str))
             if len(str) == 2:
                 is_not = 1
                 str = str[1]
@@ -196,7 +200,9 @@ class Operation:
         self.result = method()
         self.solved = 1 
         if (name != "IMP" and name != "IAOI"):
+            print("REmoved", self.hash)
             current_file.replace_op_by_fact(self)
+
 
     def ADD(self):
         return self.lhs.get_v() and self.rhs.get_v()
@@ -225,7 +231,10 @@ class Operation:
             fact = current_file.find_fact_same_same(self.rhs.name, None)
             if fact:
                 if type(self.lhs) is Fact: 
-                    fact.value = self.lhs.get_v()
+                    if type(self.rhs) is Fact and self.rhs.solved == 1:
+                        fact.value = self.rhs.get_v()
+                    else:
+                        fact.value = self.lhs.get_v()
                     print(fact.name + " v set to : " + str(fact.value))
                 else :
                     if not self.lhs.solved:
@@ -252,8 +261,8 @@ def make_easy_op():
     easy_op = []
     for op in current_file.operations:
         if type(op) is Operation:
-            # print("j'ai une op : "+ op.hash)
-            # print(type(op.lhs), type(op.rhs))
+            print("j'ai une op : "+ op.hash)
+            print(type(op.lhs), type(op.rhs))
             # print(op.lhs.solved, op.rhs.solved)
             if (type(op.lhs) is Fact) and (op.lhs.solved == 1 or op.rhs.solved == 1):
                 print("lhs is fact !")
@@ -261,14 +270,12 @@ def make_easy_op():
                 op.removeMe()
                 print("Operation done op: " + op.hash + "=" + str(op.result))
                 current_file.displayFacts()
+                make_easy_op()
                 return
 def make_easy_rule():
     i = -1
-    
     for op in current_file.rules:
         if op.solved == 0:
-            print("jai une op")
-            print(op.hash)
             if op.lhs.solved == 1 or len(current_file.rules) == 1:
                 op.make_my_operation()
                 print("Operation done ru: " + op.hash + "=" + str(op.result))
